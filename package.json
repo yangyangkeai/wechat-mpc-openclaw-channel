@@ -46,7 +46,7 @@
   "author": "Tingyang Zhang",
   "license": "MIT",
   "devDependencies": {
-    "openclaw": "2026.3.23-2",
+    "openclaw": "^2026.3.23-2",
     "typescript": "^6.0.2"
   }
 }
