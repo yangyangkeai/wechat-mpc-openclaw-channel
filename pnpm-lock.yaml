@@ -9,8 +9,8 @@ importers:
   .:
     devDependencies:
       openclaw:
-        specifier: 2026.3.23-2
-        version: 2026.3.23-2(@napi-rs/canvas@0.1.97)
+        specifier: ^2026.3.24
+        version: 2026.3.24(@napi-rs/canvas@0.1.97)
       typescript:
         specifier: ^6.0.2
         version: 6.0.2
@@ -1581,13 +1581,13 @@ packages:
       zod:
         optional: true
 
-  openclaw@2026.3.23-2:
-    resolution: {integrity: sha512-xjBXnzL9LkOlsWZd2y8VHzn9SuHMbTbHtuBFzZJjAnx+qm6yIvXpnCnVWh8iaOkuN8a6nOiLl5WAcgRK1k3+LQ==}
-    engines: {node: '>=22.16.0'}
+  openclaw@2026.3.24:
+    resolution: {integrity: sha512-Bjk1+AiTsjbBaAl4NI0pQjtmG0Y2BFVcQg7veOJ15T7+orBN8RYBK/9cdqejIENDV5Mm7IPgls2WImYsd5aJOQ==}
+    engines: {node: '>=22.14.0'}
     hasBin: true
     peerDependencies:
       '@napi-rs/canvas': ^0.1.89
-      node-llama-cpp: 3.16.2
+      node-llama-cpp: 3.18.1
     peerDependenciesMeta:
       node-llama-cpp:
         optional: true
@@ -4031,7 +4031,7 @@ snapshots:
       ws: 8.20.0
       zod: 4.3.6
 
-  openclaw@2026.3.23-2(@napi-rs/canvas@0.1.97):
+  openclaw@2026.3.24(@napi-rs/canvas@0.1.97):
     dependencies:
       '@agentclientprotocol/sdk': 0.16.1(zod@4.3.6)
       '@anthropic-ai/vertex-sdk': 0.14.4(zod@4.3.6)
