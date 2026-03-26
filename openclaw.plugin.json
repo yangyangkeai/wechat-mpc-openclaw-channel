@@ -1,11 +1,11 @@
 {
-  "id": "wechat-mpc",
+  "id": "openclaw-wechat-mpc",
   "channels": [
     "wechat-mpc"
   ],
   "name": "WeChatMP-ThirdParty",
   "description": "Third-party platform-based OpenClaw WeChat Official Account (微信公众号) channel plugin",
-  "version": "2026.3.24-dev",
+  "version": "2026.3.27-2",
   "uiHints": {
     "proxyUrl": {
       "label": "Third-party Platform API URL",
