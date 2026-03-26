@@ -1,0 +1,52 @@
+{
+  "name": "@tingyang/wechat-mpc",
+  "version": "2026.3.24-dev",
+  "description": "Third-party platform-based OpenClaw WeChat Official Account (微信公众号) channel plugin",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "test": "vitest --run"
+  },
+  "openclaw": {
+    "extensions": [
+      "./dist/index.js"
+    ],
+    "channel": {
+      "id": "wechat-mpc",
+      "label": "WeChatMP-ThirdParty",
+      "selectionLabel": "WeChat MP (Third-party Platform)",
+      "docsPath": "/channels/wechat-mpc",
+      "docsLabel": "wechat-mpc",
+      "blurb": "Third-party platform-based OpenClaw WeChat Official Account (微信公众号) channel plugin.",
+      "aliases": [
+        "wechat-mpc",
+        "微信公众号",
+        "微信三方平台"
+      ]
+    },
+    "install": {
+      "npmSpec": "@tingyang/wechat-mpc",
+      "localPath": ".",
+      "defaultChoice": "npm"
+    }
+  },
+  "keywords": [
+    "openclaw",
+    "wechat-official-account",
+    "wechat-mp",
+    "wechat-third-party-platform",
+    "微信公众号",
+    "公众号插件",
+    "微信三方平台",
+    "微信开放平台"
+  ],
+  "author": "Tingyang Zhang",
+  "license": "MIT",
+  "devDependencies": {
+    "openclaw": "2026.3.23-2",
+    "typescript": "^6.0.2"
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "id": "wechat-mpc",
+  "channels": [
+    "wechat-mpc"
+  ],
+  "name": "WeChatMP-ThirdParty",
+  "description": "Third-party platform-based OpenClaw WeChat Official Account (微信公众号) channel plugin",
+  "version": "2026.3.24-dev",
+  "uiHints": {
+    "proxyUrl": {
+      "label": "Third-party Platform API URL",
+      "placeholder": "wss://xxx.xxx.com/socket",
+      "help": "WebSocket URL (ws:// or wss://) for receiving messages from OpenClaw.",
+      "sensitive": false
+    },
+    "appid": {
+      "label": "WeChatMP AppID",
+      "placeholder": "Your WeChatMP AppID",
+      "help": "AppID of your WeChat Official Account (微信公众号) registered.",
+      "sensitive": false
+    },
+    "apiKey": {
+      "label": "API Key",
+      "placeholder": "Your API Key",
+      "help": "API Key for authenticating with the third-party platform.",
+      "sensitive": true
+    }
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "enabled": {
+        "type": "boolean"
+      },
+      "proxyUrl": {
+        "type": "string",
+        "description": "WebSocket URL for receiving messages from OpenClaw."
+      },
+      "appid": {
+        "type": "string",
+        "description": "AppID of your WeChat Official Account (微信公众号) registered."
+      },
+      "apiKey": {
+        "type": "string",
+        "description": "API Key for authenticating with the third-party platform."
+      }
+    }
+  }
+}
