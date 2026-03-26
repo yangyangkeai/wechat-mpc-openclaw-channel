@@ -1,6 +1,6 @@
 {
   "name": "@tingyang/openclaw-wechat-mpc",
-  "version": "2026.3.24-dev",
+  "version": "2026.3.27-dev",
   "description": "Third-party platform-based OpenClaw WeChat Official Account (微信公众号) channel plugin",
   "type": "module",
   "main": "./dist/index.js",
