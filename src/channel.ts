@@ -208,7 +208,9 @@ export const wechatMPCPlugin = createChatChannelPlugin<ResolvedAccount>({
                                 switch (msgType) {
                                     case "text": {
                                         const senderId = String(msgObj.from ?? "");
-                                        const content = String(msgObj.content ?? "");
+                                        const contentRaw = String(msgObj.content ?? "");
+                                        const content = contentRaw.trim();
+                                        const isSlashCommand = content.startsWith("/");
                                         const imageUrls = extractImageUrls(msgObj.imageUrls);
 
                                         if (!senderId || !content) {
@@ -224,9 +226,11 @@ export const wechatMPCPlugin = createChatChannelPlugin<ResolvedAccount>({
                                         updateStatus({lastInboundAt: Date.now()});
 
                                         // Keep image URLs in-band so the downstream model can fetch and reason over them.
-                                        const modelInput = imageUrls.length > 0
-                                            ? `${content}\n\n[image_urls]\n${imageUrls.join("\n")}`
-                                            : content;
+                                        const rawBody = isSlashCommand
+                                            ? content
+                                            : (imageUrls.length > 0
+                                                ? `${content}\n\n[image_urls]\n${imageUrls.join("\n")}`
+                                                : content);
 
                                         // 投递到 OpenClaw 的标准 DM 入站管线（路由 / 会话 / 回复调度）。
                                         void dispatchInboundDirectDmWithRuntime({
@@ -240,7 +244,8 @@ export const wechatMPCPlugin = createChatChannelPlugin<ResolvedAccount>({
                                             senderAddress: senderId,
                                             recipientAddress: senderId,
                                             conversationLabel: senderId,
-                                            rawBody: modelInput,
+                                            rawBody,
+                                            commandAuthorized: true,
                                             messageId: `mpc-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
                                             deliver: async (payload) => {
                                                 const replyText = payload.text?.trim();
