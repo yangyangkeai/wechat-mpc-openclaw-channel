@@ -53,9 +53,69 @@ type ResolvedAccount = {
 // 每个账号维持一个独立 WebSocket 连接实例
 const accountChannels = new Map<string, WsChannel>();
 
+// 从消息对象中提取图片 URL 列表，供模型输入使用
+function extractImageUrls(value: unknown): string[] {
+    if (!Array.isArray(value)) {
+        return [];
+    }
+    return value
+        .map((item) => (typeof item === "string" ? item.trim() : ""))
+        .filter((url) => Boolean(url));
+}
+
 // 生成账号唯一键：accountId + appid，避免多账号场景下串连
 function getAccountKey(account: ResolvedAccount): string {
     return `${account.accountId ?? "default"}:${account.appid}`;
+}
+
+// 从全局配置中解析账号信息，供启动时使用
+function resolveAccountFromConfig(cfg: OpenClawConfig, accountId?: string | null): ResolvedAccount {
+    const section = (cfg.channels as Record<string, any>)?.[channelId];
+    const proxyUrl = section?.proxyUrl;
+    const appid = section?.appid;
+    const apiKey = section?.apiKey;
+    if (!proxyUrl || !appid || !apiKey) {
+        throw new Error("wechat-mpc: proxyUrl, appid and apiKey are required");
+    }
+    return {
+        accountId: accountId ?? null,
+        proxyUrl,
+        appid,
+        apiKey,
+    };
+}
+
+// 发送文本消息的统一函数，供 outbound sendText 和 sendMedia 调用
+function sendOutboundTextViaWs(params: {
+    cfg: OpenClawConfig;
+    accountId?: string | null;
+    to: string;
+    text: string;
+}): { ok: boolean; error?: string; appid?: string } {
+    const to = params.to.trim();
+    const text = params.text.trim();
+    if (!to || !text) {
+        return {ok: false, error: "missing target or text"};
+    }
+
+    let account: ResolvedAccount;
+    try {
+        account = resolveAccountFromConfig(params.cfg, params.accountId ?? null);
+    } catch (error) {
+        return {ok: false, error: `resolve account failed: ${String(error)}`};
+    }
+
+    const channel = accountChannels.get(getAccountKey(account));
+    if (!channel) {
+        return {ok: false, error: `channel not running for account=${account.appid}`};
+    }
+
+    const sent = channel.send("msg", `text ${account.appid} ${to} ${text}`);
+    if (!sent) {
+        return {ok: false, error: "websocket send failed"};
+    }
+
+    return {ok: true, appid: account.appid};
 }
 
 // 插件主体定义
@@ -68,7 +128,7 @@ export const wechatMPCPlugin = createChatChannelPlugin<ResolvedAccount>({
             chatTypes: ["direct"],
             reactions: true,
             threads: false,
-            media: false,
+            media: true,
             nativeCommands: false,
             blockStreaming: false,
         },
@@ -149,6 +209,7 @@ export const wechatMPCPlugin = createChatChannelPlugin<ResolvedAccount>({
                                     case "text": {
                                         const senderId = String(msgObj.from ?? "");
                                         const content = String(msgObj.content ?? "");
+                                        const imageUrls = extractImageUrls(msgObj.imageUrls);
 
                                         if (!senderId || !content) {
                                             console.warn(`${channelId}, invalid text msg (missing from or content), account=${accountInfo.appid}`);
@@ -162,6 +223,11 @@ export const wechatMPCPlugin = createChatChannelPlugin<ResolvedAccount>({
 
                                         updateStatus({lastInboundAt: Date.now()});
 
+                                        // Keep image URLs in-band so the downstream model can fetch and reason over them.
+                                        const modelInput = imageUrls.length > 0
+                                            ? `${content}\n\n[image_urls]\n${imageUrls.join("\n")}`
+                                            : content;
+
                                         // 投递到 OpenClaw 的标准 DM 入站管线（路由 / 会话 / 回复调度）。
                                         void dispatchInboundDirectDmWithRuntime({
                                             cfg: account.cfg,
@@ -172,18 +238,18 @@ export const wechatMPCPlugin = createChatChannelPlugin<ResolvedAccount>({
                                             peer: {kind: "direct", id: senderId},
                                             senderId,
                                             senderAddress: senderId,
-                                            recipientAddress: accountInfo.appid,
+                                            recipientAddress: senderId,
                                             conversationLabel: senderId,
-                                            rawBody: content,
+                                            rawBody: modelInput,
                                             messageId: `mpc-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
                                             deliver: async (payload) => {
                                                 const replyText = payload.text?.trim();
                                                 if (!replyText) {
                                                     return;
                                                 }
-                                                                // 回复协议：msg text {appid} {toUserOpenId} {text}
+                                                // 回复协议：msg text {appid} {toUserOpenId} {text}
                                                 ws.send("msg", `text ${accountInfo.appid} ${senderId} ${replyText}`);
-                                                                // 打印模型回复，便于联调
+                                                // 打印模型回复，便于联调
                                                 console.log(`${channelId}, reply to ${senderId}: ${replyText}`);
                                             },
                                             onRecordError: (err) => {
@@ -264,21 +330,68 @@ export const wechatMPCPlugin = createChatChannelPlugin<ResolvedAccount>({
             // 统一启用，是否真正可运行由 isConfigured 决定
             isEnabled: () => true,
             // 从全局配置中解析渠道账号配置
-            resolveAccount: (cfg: OpenClawConfig, accountId?: string | null) => {
-                const section = (cfg.channels as Record<string, any>)?.[channelId];
-                const proxyUrl = section?.proxyUrl;
-                const appid = section?.appid;
-                const apiKey = section?.apiKey;
-                if (!proxyUrl || !appid || !apiKey) {
-                    throw new Error("wechat-mpc: proxyUrl, appid and apiKey are required");
-                }
-                return {
-                    accountId: accountId ?? null,
-                    proxyUrl,
-                    appid,
-                    apiKey,
-                };
-            }
+            resolveAccount: (cfg: OpenClawConfig, accountId?: string | null) => resolveAccountFromConfig(cfg, accountId),
         }
+    },
+    outbound: {
+        base: {
+            deliveryMode: "gateway",
+        },
+        attachedResults: {
+            channel: channelId,
+            sendText: async (ctx) => {
+                const result = sendOutboundTextViaWs({
+                    cfg: ctx.cfg,
+                    accountId: ctx.accountId ?? null,
+                    to: ctx.to,
+                    text: ctx.text,
+                });
+                console.log("ctx", result);
+
+                if (!result.ok) {
+                    throw new Error(`wechat-mpc outbound text failed: ${result.error ?? "unknown error"}`);
+                }
+
+                return {
+                    messageId: `mpc-out-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+                    timestamp: Date.now(),
+                    conversationId: ctx.to,
+                    meta: {
+                        mode: "text",
+                        appid: result.appid,
+                    },
+                };
+            },
+            sendMedia: async (ctx) => {
+                // 当前代理协议仅支持 text 回写，媒体先退化为链接文本。
+                const mediaUrl = (ctx.mediaUrl ?? "").trim();
+                const caption = (ctx.text ?? "").trim();
+                const text = caption
+                    ? `${caption}\n\n[media_url]\n${mediaUrl}`
+                    : `[media_url]\n${mediaUrl}`;
+
+                const result = sendOutboundTextViaWs({
+                    cfg: ctx.cfg,
+                    accountId: ctx.accountId ?? null,
+                    to: ctx.to,
+                    text,
+                });
+
+                if (!result.ok) {
+                    throw new Error(`wechat-mpc outbound media failed: ${result.error ?? "unknown error"}`);
+                }
+
+                return {
+                    messageId: `mpc-out-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+                    timestamp: Date.now(),
+                    conversationId: ctx.to,
+                    meta: {
+                        mode: "media-fallback-text",
+                        appid: result.appid,
+                        mediaUrl,
+                    },
+                };
+            },
+        },
     },
 });
