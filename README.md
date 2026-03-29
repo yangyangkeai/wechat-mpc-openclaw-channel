@@ -1,7 +1,7 @@
 # 🦞 OpenClaw WeChat Official Account Channel Plugin
 
 一个用于将 **微信公众号（订阅号 / 服务号）** 接入 OpenClaw 的插件。  
-基于微信开放平台（三方平台模式）实现，通过统一代理服务完成消息转发，插件通过 **WSS（WebSocket Secure）协议** 与代理平台进行实时通信。
+基于微信开放平台（三方平台模式）实现，通过统一代理服务完成消息转发，插件通过 **WSS（WebSocket Secure）协议** 与代理服务进行实时通信。
 
 <img src="assets/mp_chat.jpg" width="320" alt="架构图" />
 
@@ -14,8 +14,13 @@
 
 - ✅ 简化微信公众号接入流程（无需自行处理复杂的微信回调）
 - ✅ 统一消息入口，便于与 OpenClaw Agent 体系集成
-- ✅ 支持实时双向通信（用户 ↔ Agent）
-- ✅ 降低开发与运维成本（代理平台托管）
+- ✅ 实时双向通信（代理服务 ↔ OpenClaw）
+- ✅ 降低开发与运维成本（代理服务托管）
+
+支持的公众号消息:
+- ✅ 文本消息
+- ✅ 语音消息（由代理服务的腾讯云ASR服务转文本当作文本消息处理）
+- ✅ 图片消息(由代理服务暂存图片URL，在下次文本消息或语音消息时携带URL作为文本消息的一部分发送给OpenClaw Agent)
 
 ---
 
@@ -42,7 +47,7 @@ Agent / 业务逻辑
   - 负责消息回写（客服消息）
 
 - **插件（本项目）**
-  - 与代理平台建立 WSS 长连接
+  - 与代理服务建立 WSS 长连接
   - 处理消息分发与回调
   - 对接 OpenClaw 内部 Agent
 
@@ -55,7 +60,7 @@ Agent / 业务逻辑
 请确保具备：
 
 - 已认证的微信公众号（订阅号 / 服务号）
-- 能提供公众号 AppID 且允许授权到我们的三方平台
+- 能提供公众号 AppID 且允许授权到我们的三方平台（代理服务）
 
 ---
 
@@ -93,7 +98,7 @@ openclaw plugins install @tingyang/openclaw-wechat-mpc
 # 启用插件
 openclaw config set channels.wechat-mpc.enabled true
 
-# 代理地址
+# 代理服务地址
 openclaw config set channels.wechat-mpc.proxyUrl wss://mpc.letlike.com/socket
 
 # 公众号 AppID
@@ -107,12 +112,12 @@ openclaw gateway restart
 ```
 
 ## ⚙️ 配置项说明
-| 配置项      | 必填 | 说明            |
-| -------- | -- | ------------- |
-| enabled  | ✅  | 是否启用插件        |
-| proxyUrl | ✅  | 三方平台代理地址（WSS） |
-| appid    | ✅  | 微信公众号 AppID   |
-| apiKey   | ✅  | 平台分配的访问密钥     |
+| 配置项      | 必填 | 说明              |
+| -------- | -- |-----------------|
+| enabled  | ✅  | 是否启用插件          |
+| proxyUrl | ✅  | 三方平台代理服务地址（WSS） |
+| appid    | ✅  | 微信公众号 AppID     |
+| apiKey   | ✅  | 平台分配的访问密钥       |
 
 ## 📄 License
 
