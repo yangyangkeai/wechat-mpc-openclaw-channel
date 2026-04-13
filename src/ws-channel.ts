@@ -24,10 +24,8 @@
 
 /** WebSocket OPEN 状态常量（readyState === 1） */
 const WS_OPEN = 1;
-/** 指数退避重连的初始延迟（毫秒） */
-const RECONNECT_BASE_DELAY_MS = 1000;
-/** 指数退避重连的最大延迟上限（毫秒） */
-const RECONNECT_MAX_DELAY_MS = 30_000;
+/** 固定间隔重连延迟（毫秒） */
+const RECONNECT_INTERVAL_MS = 5000;
 
 type WsEventListener = (event: any) => void;
 
@@ -61,7 +59,7 @@ export type WsChannelOptions = {
 
 /**
  * 封装单条 WebSocket 长连接的全生命周期：
- * - 自动指数退避重连
+ * - 自动固定间隔重连（每 5 秒）
  * - generation 机制屏蔽旧连接的过期回调
  * - 统一的文本帧发送格式 `'{command} {data}'`
  *
@@ -80,8 +78,6 @@ export class WsChannel {
     private shouldReconnect = false;
     /** 重连定时器句柄 */
     private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-    /** 连续重连失败次数，用于计算指数退避 */
-    private reconnectAttempts = 0;
     /** 连接代际编号，用于忽略旧连接的过期回调 */
     private generation = 0;
     /** 当前连接绑定的事件监听引用，便于统一解绑 */
@@ -99,6 +95,7 @@ export class WsChannel {
     /** 建立连接，允许自动重连 */
     connect(): void {
         this.shouldReconnect = true;
+        console.log("重新连接 true");
         this.connectInternal();
     }
 
@@ -126,6 +123,7 @@ export class WsChannel {
     /** 主动销毁：关闭连接并永久停止重连 */
     destroy(): void {
         this.shouldReconnect = false;
+        console.log("重新连接 false");
         this.clearReconnectTimer();
         this.detachListeners();
         if (this.ws) {
@@ -184,19 +182,15 @@ export class WsChannel {
         this.listeners = {};
     }
 
-    /** 按指数退避策略安排下一次重连 */
+    /** 按固定间隔安排下一次重连 */
     private scheduleReconnect(): void {
+        console.log("scheduleReconnect", this.shouldReconnect);
         if (!this.shouldReconnect) {
             return;
         }
         this.clearReconnectTimer();
-        const delay = Math.min(
-            RECONNECT_BASE_DELAY_MS * 2 ** this.reconnectAttempts,
-            RECONNECT_MAX_DELAY_MS,
-        );
-        this.reconnectAttempts += 1;
-        this.reconnectTimer = setTimeout(() => this.connectInternal(), delay);
-        console.log(`${this.tag}, schedule reconnect delay=${delay}ms`);
+        this.reconnectTimer = setTimeout(() => this.connectInternal(), RECONNECT_INTERVAL_MS);
+        console.log(`${this.tag}, schedule reconnect delay=${RECONNECT_INTERVAL_MS}ms`);
     }
 
     /**
@@ -206,6 +200,7 @@ export class WsChannel {
      * - 绑定 open/message/error/close 事件
      */
     private connectInternal(): void {
+        console.log("connectInternal", this.shouldReconnect);
         if (!this.shouldReconnect) {
             return;
         }
@@ -222,14 +217,21 @@ export class WsChannel {
         this.generation += 1;
         const currentGeneration = this.generation;
 
-        const ws = new WebSocketCtor(this.options.url) as WsConnection;
+        let ws: WsConnection;
+        try {
+            ws = new WebSocketCtor(this.options.url) as WsConnection;
+        } catch (error) {
+            console.warn(`${this.tag}, connect failed`, error);
+            this.options.onError?.(error);
+            this.scheduleReconnect();
+            return;
+        }
         this.ws = ws;
 
         const onOpen: WsEventListener = () => {
             if (this.generation !== currentGeneration || !this.shouldReconnect) {
                 return;
             }
-            this.reconnectAttempts = 0;
             console.log(`${this.tag}, connected`);
             this.options.onConnected?.(this);
         };
@@ -269,6 +271,7 @@ export class WsChannel {
             }
             console.warn(`${this.tag}, error`, event);
             this.options.onError?.(event);
+            this.scheduleReconnect();
         };
 
         const onClose: WsEventListener = () => {
@@ -281,7 +284,7 @@ export class WsChannel {
             this.scheduleReconnect();
         };
 
-        this.listeners = { open: onOpen, message: onMessage, error: onError, close: onClose };
+        this.listeners = {open: onOpen, message: onMessage, error: onError, close: onClose};
         ws.addEventListener("open", onOpen);
         ws.addEventListener("message", onMessage);
         ws.addEventListener("error", onError);
