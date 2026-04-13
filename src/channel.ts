@@ -181,7 +181,7 @@ export const wechatMPCPlugin = createChatChannelPlugin<ResolvedAccount>({
                         });
                     },
                     // 处理代理推送的上行命令
-                    onMessage: (command: string, data: string, ws: WsChannel) => {
+                    onMessage: (command: string, data: string) => {
                         console.log(`${channelId}, inbound command account=${accountInfo.appid}, command=${command}`);
 
                         switch (command) {
@@ -285,7 +285,16 @@ export const wechatMPCPlugin = createChatChannelPlugin<ResolvedAccount>({
                                                     return;
                                                 }
                                                 // 回复协议：msg text {appid} {toUserOpenId} {text}
-                                                const sent = ws.send("msg", `text ${accountInfo.appid} ${senderId} ${replyText}`);
+                                                const activeChannel = accountChannels.get(accountKey);
+                                                let sent = activeChannel?.send("msg", `text ${accountInfo.appid} ${senderId} ${replyText}`) ?? false;
+
+                                                // If channel switched during reconnect, retry once with fresh lookup.
+                                                if (!sent) {
+                                                    const refreshedChannel = accountChannels.get(accountKey);
+                                                    if (refreshedChannel && refreshedChannel !== activeChannel) {
+                                                        sent = refreshedChannel.send("msg", `text ${accountInfo.appid} ${senderId} ${replyText}`);
+                                                    }
+                                                }
                                                 /*console.log(`${channelId}, deliver ws.send result`, {
                                                     traceId,
                                                     sent,

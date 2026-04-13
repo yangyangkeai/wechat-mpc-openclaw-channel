@@ -188,6 +188,11 @@ export class WsChannel {
         if (!this.shouldReconnect) {
             return;
         }
+        // If socket is still open, wait for close event to avoid creating parallel sessions.
+        if (this.ws && this.ws.readyState === WS_OPEN) {
+            console.log(`${this.tag}, skip reconnect: socket still open`);
+            return;
+        }
         this.clearReconnectTimer();
         this.reconnectTimer = setTimeout(() => this.connectInternal(), RECONNECT_INTERVAL_MS);
         console.log(`${this.tag}, schedule reconnect delay=${RECONNECT_INTERVAL_MS}ms`);
@@ -212,6 +217,14 @@ export class WsChannel {
 
         this.clearReconnectTimer();
         this.detachListeners();
+        if (this.ws) {
+            try {
+                this.ws.close(1000, "reconnect");
+            } catch (error) {
+                console.warn(`${this.tag}, close stale socket failed`, error);
+            }
+            this.ws = null;
+        }
 
         // generation 自增后，旧连接触发的所有事件回调都会被静默忽略。
         this.generation += 1;
@@ -271,7 +284,10 @@ export class WsChannel {
             }
             console.warn(`${this.tag}, error`, event);
             this.options.onError?.(event);
-            this.scheduleReconnect();
+            // Some runtimes may emit error before/without close; reconnect only when not OPEN.
+            if (!this.ws || this.ws.readyState !== WS_OPEN) {
+                this.scheduleReconnect();
+            }
         };
 
         const onClose: WsEventListener = () => {
