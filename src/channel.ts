@@ -139,10 +139,6 @@ export const wechatMPCPlugin = createChatChannelPlugin<ResolvedAccount>({
             startAccount: async (account) => {
                 const accountInfo = account.account;
                 const accountKey = getAccountKey(accountInfo);
-                const updateStatus = createAccountStatusSink({
-                    accountId: account.accountId,
-                    setStatus: account.setStatus,
-                });
 
                 // 幂等启动：已有旧连接先销毁再重建
                 accountChannels.get(accountKey)?.destroy();
@@ -158,27 +154,12 @@ export const wechatMPCPlugin = createChatChannelPlugin<ResolvedAccount>({
                     // 连接建立后先鉴权，再更新运行态
                     onConnected: (ch) => {
                         ch.send("auth", accountInfo.apiKey);
-                        updateStatus({
-                            configured: true,
-                            running: true,
-                            connected: true,
-                            lastConnectedAt: Date.now(),
-                            lastError: null,
-                        });
                     },
                     // 断开时标记离线，但保持 running=true（等待自动重连）
                     onDisconnected: () => {
-                        updateStatus({
-                            running: true,
-                            connected: false,
-                            lastDisconnect: "websocket disconnected",
-                        });
                     },
                     // 记录底层 WebSocket 错误信息，方便排障
                     onError: (event) => {
-                        updateStatus({
-                            lastError: String((event as { message?: string })?.message ?? "websocket error"),
-                        });
                     },
                     // 处理代理推送的上行命令
                     onMessage: (command: string, data: string) => {
@@ -233,8 +214,6 @@ export const wechatMPCPlugin = createChatChannelPlugin<ResolvedAccount>({
                                             console.warn(`${channelId}, channelRuntime unavailable, cannot dispatch inbound`);
                                             break;
                                         }
-
-                                        updateStatus({lastInboundAt: Date.now()});
 
                                         // Keep image URLs in-band so the downstream model can fetch and reason over them.
                                         const rawBody = isSlashCommand
@@ -346,14 +325,6 @@ export const wechatMPCPlugin = createChatChannelPlugin<ResolvedAccount>({
                 // 注册并启动连接
                 accountChannels.set(accountKey, channel);
                 console.log(`${channelId}, startAccount with accountId: ${accountInfo.appid}`);
-                updateStatus({
-                    configured: true,
-                    enabled: true,
-                    running: true,
-                    connected: false,
-                    mode: "websocket",
-                    lastStartAt: Date.now(),
-                });
                 channel.connect();
 
                 // 关键：保持 startAccount 任务存活到 abort，避免被宿主误判为退出后触发 auto-restart。
@@ -364,11 +335,6 @@ export const wechatMPCPlugin = createChatChannelPlugin<ResolvedAccount>({
                     if (active === channel) {
                         active.destroy();
                         accountChannels.delete(accountKey);
-                        updateStatus({
-                            running: false,
-                            connected: false,
-                            lastStopAt: Date.now(),
-                        });
                     }
                 }
             },
@@ -376,18 +342,9 @@ export const wechatMPCPlugin = createChatChannelPlugin<ResolvedAccount>({
             stopAccount: async (account) => {
                 const accountInfo = account.account;
                 const accountKey = getAccountKey(accountInfo);
-                const updateStatus = createAccountStatusSink({
-                    accountId: account.accountId,
-                    setStatus: account.setStatus,
-                });
                 console.log(`${channelId}, stopAccount with accountId: ${accountInfo.appid}`);
                 accountChannels.get(accountKey)?.destroy();
                 accountChannels.delete(accountKey);
-                updateStatus({
-                    running: false,
-                    connected: false,
-                    lastStopAt: Date.now(),
-                });
             }
         },
         // 渠道配置读取与校验逻辑
