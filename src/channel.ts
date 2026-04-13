@@ -30,6 +30,8 @@ import {dispatchInboundDirectDmWithRuntime} from "openclaw/plugin-sdk/channel-in
 import {createAccountStatusSink, waitUntilAbort} from "openclaw/plugin-sdk/channel-lifecycle";
 import {WsChannel} from "./ws-channel.js";
 
+type DispatchDirectDmRuntime = Parameters<typeof dispatchInboundDirectDmWithRuntime>[0]["runtime"];
+
 // 当前频道 ID（在 OpenClaw 内部用于唯一标识该渠道）
 const channelId = "wechat-mpc";
 // 当前频道的展示元信息（用于管理界面展示与渠道类型区分）
@@ -213,6 +215,15 @@ export const wechatMPCPlugin = createChatChannelPlugin<ResolvedAccount>({
                                         const isSlashCommand = content.startsWith("/");
                                         const imageUrls = extractImageUrls(msgObj.imageUrls);
 
+                                        /*console.log(`${channelId}, inbound text parsed`, {
+                                            appid: accountInfo.appid,
+                                            senderId,
+                                            contentLen: content.length,
+                                            isSlashCommand,
+                                            imageUrlCount: imageUrls.length,
+                                            hasRuntime: Boolean(account.channelRuntime),
+                                        });*/
+
                                         if (!senderId || !content) {
                                             console.warn(`${channelId}, invalid text msg (missing from or content), account=${accountInfo.appid}`);
                                             break;
@@ -232,10 +243,19 @@ export const wechatMPCPlugin = createChatChannelPlugin<ResolvedAccount>({
                                                 ? `${content}\n\n[image_urls]\n${imageUrls.join("\n")}`
                                                 : content);
 
+                                        const traceId = `mpc-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+                                        /*console.log(`${channelId}, dispatch start`, {
+                                            traceId,
+                                            appid: accountInfo.appid,
+                                            senderId,
+                                            rawBodyLen: rawBody.length,
+                                            preview: rawBody.slice(0, 120),
+                                        });*/
+
                                         // 投递到 OpenClaw 的标准 DM 入站管线（路由 / 会话 / 回复调度）。
                                         void dispatchInboundDirectDmWithRuntime({
                                             cfg: account.cfg,
-                                            runtime: {channel: account.channelRuntime},
+                                            runtime: {channel: account.channelRuntime as unknown as DispatchDirectDmRuntime["channel"]},
                                             channel: channelId,
                                             channelLabel: channelMeta.label,
                                             accountId: account.accountId,
@@ -246,22 +266,57 @@ export const wechatMPCPlugin = createChatChannelPlugin<ResolvedAccount>({
                                             conversationLabel: senderId,
                                             rawBody,
                                             commandAuthorized: true,
-                                            messageId: `mpc-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+                                            messageId: traceId,
                                             deliver: async (payload) => {
+                                                console.log(`${channelId}, deliver called`, {
+                                                    traceId,
+                                                    hasText: typeof payload.text === "string",
+                                                    textLen: payload.text?.length ?? 0,
+                                                    payloadKeys: Object.keys(payload ?? {}),
+                                                });
+
                                                 const replyText = payload.text?.trim();
+
                                                 if (!replyText) {
+                                                    console.warn(`${channelId}, deliver skipped: empty payload.text`, {
+                                                        traceId,
+                                                        rawText: payload.text,
+                                                    });
                                                     return;
                                                 }
                                                 // 回复协议：msg text {appid} {toUserOpenId} {text}
-                                                ws.send("msg", `text ${accountInfo.appid} ${senderId} ${replyText}`);
+                                                const sent = ws.send("msg", `text ${accountInfo.appid} ${senderId} ${replyText}`);
+                                                /*console.log(`${channelId}, deliver ws.send result`, {
+                                                    traceId,
+                                                    sent,
+                                                    appid: accountInfo.appid,
+                                                    senderId,
+                                                    replyLen: replyText.length,
+                                                    replyPreview: replyText.slice(0, 120),
+                                                });*/
+
+                                                if (!sent) {
+                                                    console.warn(`${channelId}, deliver ws.send failed`, {
+                                                        traceId,
+                                                        appid: accountInfo.appid,
+                                                        senderId,
+                                                    });
+                                                }
                                                 // 打印模型回复，便于联调
                                                 console.log(`${channelId}, reply to ${senderId}: ${replyText}`);
                                             },
                                             onRecordError: (err) => {
-                                                console.warn(`${channelId}, record inbound failed account=${accountInfo.appid}`, err);
+                                                console.warn(`${channelId}, record inbound failed account=${accountInfo.appid}`, {
+                                                    traceId,
+                                                    err,
+                                                });
                                             },
                                             onDispatchError: (err, info) => {
-                                                console.warn(`${channelId}, dispatch inbound failed account=${accountInfo.appid}, kind=${info.kind}`, err);
+                                                console.warn(`${channelId}, dispatch inbound failed account=${accountInfo.appid}, kind=${info.kind}`, {
+                                                    traceId,
+                                                    err,
+                                                    info,
+                                                });
                                             },
                                         });
                                         break;
@@ -345,13 +400,20 @@ export const wechatMPCPlugin = createChatChannelPlugin<ResolvedAccount>({
         attachedResults: {
             channel: channelId,
             sendText: async (ctx) => {
+                console.log(`${channelId}, outbound sendText called`, {
+                    accountId: ctx.accountId ?? "default",
+                    to: ctx.to,
+                    textLen: (ctx.text ?? "").length,
+                    textPreview: (ctx.text ?? "").slice(0, 120),
+                });
+
                 const result = sendOutboundTextViaWs({
                     cfg: ctx.cfg,
                     accountId: ctx.accountId ?? null,
                     to: ctx.to,
                     text: ctx.text,
                 });
-                console.log("ctx", result);
+                console.log(`${channelId}, outbound sendText result`, result);
 
                 if (!result.ok) {
                     throw new Error(`wechat-mpc outbound text failed: ${result.error ?? "unknown error"}`);
