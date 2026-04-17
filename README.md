@@ -117,12 +117,18 @@ openclaw gateway restart
 ```
 
 ## ⚙️ 配置项说明
-| 配置项      | 必填 | 说明              |
-| -------- | -- |-----------------|
-| enabled  | ✅  | 是否启用插件          |
-| proxyUrl | ✅  | 三方平台代理服务地址（WSS） |
-| appid    | ✅  | 微信公众号 AppID     |
-| apiKey   | ✅  | 平台分配的访问密钥       |
+| 配置项      | 必填 | 说明                         |
+| -------- | -- |----------------------------|
+| enabled  | ✅  | 是否启用插件                     |
+| proxyUrl | ✅  | 三方平台代理服务地址（WSS）            |
+| appid    | ✅  | 微信公众号 AppID / 企微客服OpenKfId |
+| apiKey   | ✅  | 平台分配的访问密钥                  |
+
+## ⚙️ 如何联系
+
+**📡 如有问题或需要技术支持，欢迎联系我们：**
+
+<img src="assets/wechat1.png" width="256" alt="wechat" />
 
 ## 📄 License
 
