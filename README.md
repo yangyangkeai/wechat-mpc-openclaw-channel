@@ -3,8 +3,7 @@
 一个用于将 **微信公众号（订阅号 / 服务号）** 接入 OpenClaw 的插件。  
 基于微信开放平台（三方平台模式）实现，通过统一代理服务完成消息转发，插件通过 **WSS（WebSocket Secure）协议** 与代理服务进行实时通信。
 
-<img src="assets/mp_chat.jpg" width="320" alt="架构图" />
-<img src="assets/kf_chat.jpg" width="223" alt="架构图" />
+<img src="assets/mp_chat.jpg" width="520" alt="架构图" />
 
 ---
 
