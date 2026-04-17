@@ -1,7 +1,7 @@
 # 🦞 OpenClaw WeChat Official Account Channel Plugin
 
 一个用于将 **微信公众号（订阅号 / 服务号）/ 企业微信客服** 接入 OpenClaw 的插件。  
-基于 **微信开放平台（三方平台模式）/微信客服平台** 实现，通过统一代理服务完成消息转发，插件通过 **WSS（WebSocket Secure）协议** 与代理服务进行实时通信。
+基于 **微信开放平台（三方平台模式）/ 微信客服平台** 实现，通过统一代理服务完成消息转发，插件通过 **WSS（WebSocket Secure）协议** 与代理服务进行实时通信。
 
 <img src="assets/mp_chat.jpg" width="520" alt="架构图" />
 
