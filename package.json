@@ -33,7 +33,9 @@
       "blurb": "Third-party platform-based OpenClaw WeChat Official Account (微信公众号) channel plugin.",
       "aliases": [
         "wechat-mpc",
-        "微信公众号插件"
+        "wecom-kf",
+        "微信公众号插件",
+        "微信客服插件"
       ]
     },
     "install": {
@@ -45,7 +47,9 @@
   "keywords": [
     "openclaw",
     "wechat-mpc",
-    "微信公众号插件"
+    "wecom-kf",
+    "微信公众号插件",
+    "微信客服插件"
   ],
   "author": "Tingyang Zhang",
   "license": "MIT",
