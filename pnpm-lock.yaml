@@ -12,8 +12,8 @@ importers:
         specifier: ^0.28.0
         version: 0.28.0
       openclaw:
-        specifier: ^2026.5.6
-        version: 2026.5.6(@types/express@5.0.6)
+        specifier: ^2026.5.7
+        version: 2026.5.7(@types/express@5.0.6)
       typescript:
         specifier: ^6.0.2
         version: 6.0.3
@@ -918,6 +918,9 @@ packages:
 
   '@types/node@25.6.0':
     resolution: {integrity: sha512-+qIYRKdNYJwY3vRCZMdJbPLJAtGjQBudzZzdzwQYkEPQd+PJGixUL5QfvCLDaULoLv+RhT3LDkwEfKaAkgSmNQ==}
+
+  '@types/node@25.6.2':
+    resolution: {integrity: sha512-sokuT28dxf9JT5Kady1fsXOvI4HVpjZa95NKT5y9PNTIrs2AsobR4GFAA90ZG8M+nxVRLysCXsVj6eGC7Vbrlw==}
 
   '@types/qs@6.15.1':
     resolution: {integrity: sha512-GZHUBZR9hckSUhrxmp1nG6NwdpM9fCunJwyThLW1X3AyHgd9IlHb6VANpQQqDr2o/qQp6McZ3y/IA2rVzKzSbw==}
@@ -1871,8 +1874,8 @@ packages:
       zod:
         optional: true
 
-  openclaw@2026.5.6:
-    resolution: {integrity: sha512-Kn6y87SxfnGb0Vbu/zzET8AjCeVif9Ms3NJV8zfKgqkgOSUuiM4gB8aMJW586IU2s7rz1zjTPEN9MToBvYdGkA==}
+  openclaw@2026.5.7:
+    resolution: {integrity: sha512-hjvpgconK20YltQPrzDY6cehjM8ijQyZnLKhqLBTngiFEPum9gmXwCDsrisPEXVRFtzuMhap+w6zSEmSQ1047Q==}
     engines: {node: '>=22.14.0'}
     hasBin: true
 
@@ -3816,15 +3819,15 @@ snapshots:
   '@types/body-parser@1.19.6':
     dependencies:
       '@types/connect': 3.4.38
-      '@types/node': 25.6.0
+      '@types/node': 25.6.2
 
   '@types/connect@3.4.38':
     dependencies:
-      '@types/node': 25.6.0
+      '@types/node': 25.6.2
 
   '@types/express-serve-static-core@5.1.1':
     dependencies:
-      '@types/node': 25.6.0
+      '@types/node': 25.6.2
       '@types/qs': 6.15.1
       '@types/range-parser': 1.2.7
       '@types/send': 1.2.1
@@ -3850,6 +3853,10 @@ snapshots:
     dependencies:
       undici-types: 7.19.2
 
+  '@types/node@25.6.2':
+    dependencies:
+      undici-types: 7.19.2
+
   '@types/qs@6.15.1': {}
 
   '@types/range-parser@1.2.7': {}
@@ -3858,12 +3865,12 @@ snapshots:
 
   '@types/send@1.2.1':
     dependencies:
-      '@types/node': 25.6.0
+      '@types/node': 25.6.2
 
   '@types/serve-static@2.2.0':
     dependencies:
       '@types/http-errors': 2.0.5
-      '@types/node': 25.6.0
+      '@types/node': 25.6.2
 
   '@types/ws@8.18.1':
     dependencies:
@@ -4846,7 +4853,7 @@ snapshots:
       ws: 8.20.0
       zod: 4.4.3
 
-  openclaw@2026.5.6(@types/express@5.0.6):
+  openclaw@2026.5.7(@types/express@5.0.6):
     dependencies:
       '@agentclientprotocol/sdk': 0.21.0(zod@4.4.3)
       '@anthropic-ai/sdk': 0.93.0(zod@4.4.3)
