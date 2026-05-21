@@ -12,8 +12,8 @@ importers:
         specifier: ^0.28.0
         version: 0.28.0
       openclaw:
-        specifier: ^2026.5.18
-        version: 2026.5.18
+        specifier: ^2026.5.19
+        version: 2026.5.19
       typescript:
         specifier: ^6.0.2
         version: 6.0.3
@@ -1455,8 +1455,8 @@ packages:
       zod:
         optional: true
 
-  openclaw@2026.5.18:
-    resolution: {integrity: sha512-a9p2jdD0SEFUIxyCeOsf8gcO7fdo3vn1zGSYi04gA5mE+J1gHCSJTmk+R+hDPg6XOgHLXD+S2PrKi/74qTGPKw==}
+  openclaw@2026.5.19:
+    resolution: {integrity: sha512-5Pn5hcRDVv3eeWYDp4IPPuvyz3yD+Vrdobykl/vi35/49ZldWUz02pDT5rTGMCInDelNZGaWoXAfm5vFdqha8g==}
     engines: {node: '>=22.19.0'}
     hasBin: true
 
@@ -3362,7 +3362,7 @@ snapshots:
       ws: 8.20.1
       zod: 4.4.3
 
-  openclaw@2026.5.18:
+  openclaw@2026.5.19:
     dependencies:
       '@agentclientprotocol/sdk': 0.21.1(zod@4.4.3)
       '@clack/core': 1.3.1
