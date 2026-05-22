@@ -27,7 +27,7 @@ import {
 } from "openclaw/plugin-sdk/core";
 import type {OpenClawConfig} from "openclaw/plugin-sdk/core";
 import {dispatchInboundDirectDmWithRuntime} from "openclaw/plugin-sdk/channel-inbound";
-import {createAccountStatusSink, waitUntilAbort} from "openclaw/plugin-sdk/channel-lifecycle";
+import {waitUntilAbort} from "openclaw/plugin-sdk/channel-lifecycle";
 import {WsChannel} from "./ws-channel.js";
 
 type DispatchDirectDmRuntime = Parameters<typeof dispatchInboundDirectDmWithRuntime>[0]["runtime"];
@@ -149,7 +149,7 @@ export const wechatMPCPlugin = createChatChannelPlugin<ResolvedAccount>({
                 wsUrl.searchParams.set("appid", accountInfo.appid);
 
                 // 启动即设定运行中，由于还没有连上WS，已连接为false
-                account.setStatus({ ...account.getStatus(), running: true, connected: false });
+                account.setStatus({...account.getStatus(), running: true, connected: false});
 
                 const channel = new WsChannel({
                     url: wsUrl.toString(),
@@ -157,15 +157,15 @@ export const wechatMPCPlugin = createChatChannelPlugin<ResolvedAccount>({
                     // 连接建立后先鉴权，再更新运行态
                     onConnected: (ch) => {
                         ch.send("auth", accountInfo.apiKey);
-                        account.setStatus({ ...account.getStatus(), running: true, connected: true, lastConnectedAt: Date.now() });
+                        account.setStatus({...account.getStatus(), running: true, connected: true, lastConnectedAt: Date.now()});
                     },
                     // 断开时标记离线，但保持 running=true（等待自动重连）
                     onDisconnected: () => {
-                        account.setStatus({ ...account.getStatus(), connected: false, lastDisconnect: { at: Date.now() } });
+                        account.setStatus({...account.getStatus(), connected: false, lastDisconnect: {at: Date.now()}});
                     },
                     // 记录底层 WebSocket 错误信息，方便排障
                     onError: (event) => {
-                        account.setStatus({ ...account.getStatus(), lastError: String(event) });
+                        account.setStatus({...account.getStatus(), lastError: String(event)});
                     },
                     // 处理代理推送的上行命令
                     onMessage: (command: string, data: string) => {
@@ -237,7 +237,7 @@ export const wechatMPCPlugin = createChatChannelPlugin<ResolvedAccount>({
                                             preview: rawBody.slice(0, 120),
                                         });*/
 
-                                        account.setStatus({ ...account.getStatus(), lastInboundAt: Date.now() });
+                                        account.setStatus({...account.getStatus(), lastInboundAt: Date.now()});
 
                                         // 投递到 OpenClaw 的标准 DM 入站管线（路由 / 会话 / 回复调度）。
                                         void dispatchInboundDirectDmWithRuntime({
@@ -353,7 +353,7 @@ export const wechatMPCPlugin = createChatChannelPlugin<ResolvedAccount>({
                 console.log(`${channelId}, stopAccount with accountId: ${accountInfo.appid}`);
                 accountChannels.get(accountKey)?.destroy();
                 accountChannels.delete(accountKey);
-                account.setStatus({ ...account.getStatus(), running: false, connected: false, lastStopAt: Date.now() });
+                account.setStatus({...account.getStatus(), running: false, connected: false, lastStopAt: Date.now()});
             }
         },
         // 渠道配置读取与校验逻辑
@@ -368,7 +368,7 @@ export const wechatMPCPlugin = createChatChannelPlugin<ResolvedAccount>({
             resolveAccount: (cfg: OpenClawConfig, accountId?: string | null) => resolveAccountFromConfig(cfg, accountId),
         },
         status: {
-            buildAccountSnapshot: ({ account, runtime }) => ({
+            buildAccountSnapshot: ({account, runtime}) => ({
                 accountId: "default",
                 configured: Boolean(account.proxyUrl && account.appid && account.apiKey),
                 enabled: true,
