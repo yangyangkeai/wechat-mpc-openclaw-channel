@@ -65,6 +65,15 @@ function extractImageUrls(value: unknown): string[] {
         .filter((url) => Boolean(url));
 }
 
+// Simple safety gate: block messages that start with emoji-like symbols.
+function startsWithEmojiPrefix(text: string): boolean {
+    const normalized = text.trimStart();
+    if (!normalized) {
+        return false;
+    }
+    return /^[\p{Extended_Pictographic}\p{Emoji_Presentation}]/u.test(normalized);
+}
+
 // 生成账号唯一键：accountId + appid，避免多账号场景下串连
 function getAccountKey(account: ResolvedAccount): string {
     return `${account.accountId ?? "default"}:${account.appid}`;
@@ -268,6 +277,14 @@ export const wechatMPCPlugin = createChatChannelPlugin<ResolvedAccount>({
                                                     console.warn(`${channelId}, deliver skipped: empty payload.text`, {
                                                         traceId,
                                                         rawText: payload.text,
+                                                    });
+                                                    return;
+                                                }
+
+                                                if (startsWithEmojiPrefix(replyText)) {
+                                                    console.warn(`${channelId}, deliver skipped: starts with emoji`, {
+                                                        traceId,
+                                                        preview: replyText.slice(0, 120),
                                                     });
                                                     return;
                                                 }
