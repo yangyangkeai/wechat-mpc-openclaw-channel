@@ -24,6 +24,8 @@
 
 /** WebSocket OPEN 状态常量（readyState === 1） */
 const WS_OPEN = 1;
+/** WebSocket CONNECTING 状态常量（readyState === 0） */
+const WS_CONNECTING = 0;
 /** 固定间隔重连延迟（毫秒） */
 const RECONNECT_INTERVAL_MS = 5000;
 
@@ -88,13 +90,19 @@ export class WsChannel {
         error?: WsEventListener;
     } = {};
 
+    /** 初始化通道实例，仅保存配置，不立即发起连接。 */
     constructor(options: WsChannelOptions) {
         this.options = options;
     }
 
     /** 建立连接，允许自动重连 */
     connect(): void {
+        const isActive = this.ws && (this.ws.readyState === WS_OPEN || this.ws.readyState === WS_CONNECTING);
         this.shouldReconnect = true;
+        if (isActive) {
+            console.log(`${this.tag}, connect skipped: socket already active`);
+            return;
+        }
         console.log("重新连接 true");
         this.connectInternal();
     }
