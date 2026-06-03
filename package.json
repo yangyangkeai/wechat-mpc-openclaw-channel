@@ -11,7 +11,7 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "dev": "tsc && openclaw gateway",
-    "build": "tsc && node ./scripts/strip-console.mjs",
+    "build": "tsc",
     "build_dev": "tsc",
     "clean": "rm -rf dist",
     "test": "vitest --run"

@@ -12,7 +12,7 @@ importers:
         specifier: ^0.28.0
         version: 0.28.0
       openclaw:
-        specifier: ^2026.5.27
+        specifier: 2026.5.27
         version: 2026.5.27
       typescript:
         specifier: ^6.0.2

@@ -55,6 +55,27 @@ type ResolvedAccount = {
 // 每个账号维持一个独立 WebSocket 连接实例
 const accountChannels = new Map<string, WsChannel>();
 
+// 每个发送者（accountKey:senderId）维持一个串行派发队列。
+// 确保同一会话的多条入站消息按顺序逐一投入 OpenClaw SDK，
+// 避免 SDK 在"同会话并发"时跳过前一条消息的 deliver 回调。
+const senderDispatchQueues = new Map<string, Promise<void>>();
+
+function enqueueSenderDispatch(queueKey: string, task: () => Promise<unknown>): void {
+    const prev = senderDispatchQueues.get(queueKey) ?? Promise.resolve();
+    const next = prev
+        .then(() => task())
+        .catch((err) => {
+            console.warn(`${channelId}, senderDispatchQueue task error, key=${queueKey}`, err);
+        })
+        .then(() => {
+            // 队列为空时清理，防止内存泄漏
+            if (senderDispatchQueues.get(queueKey) === next) {
+                senderDispatchQueues.delete(queueKey);
+            }
+        });
+    senderDispatchQueues.set(queueKey, next);
+}
+
 // 从消息对象中提取图片 URL 列表，供模型输入使用
 function extractImageUrls(value: unknown): string[] {
     if (!Array.isArray(value)) {
@@ -248,8 +269,12 @@ export const wechatMPCPlugin = createChatChannelPlugin<ResolvedAccount>({
 
                                         account.setStatus({...account.getStatus(), lastInboundAt: Date.now()});
 
-                                        // 投递到 OpenClaw 的标准 DM 入站管线（路由 / 会话 / 回复调度）。
-                                        void dispatchInboundDirectDmWithRuntime({
+                                        // 通过串行队列投递：同一发送者的多条消息按序处理，
+                                        // 等待上一条 deliver 完成后再投入下一条，
+                                        // 防止 OpenClaw SDK 在同会话并发时跳过前一条的 deliver 回调。
+                                        const queueKey = `${accountKey}:${senderId}`;
+                                        console.log(`${channelId}, enqueue dispatch`, {traceId, queueKey, pending: senderDispatchQueues.has(queueKey)});
+                                        enqueueSenderDispatch(queueKey, () => dispatchInboundDirectDmWithRuntime({
                                             cfg: account.cfg,
                                             runtime: {channel: account.channelRuntime as unknown as DispatchDirectDmRuntime["channel"]},
                                             channel: channelId,
@@ -331,7 +356,7 @@ export const wechatMPCPlugin = createChatChannelPlugin<ResolvedAccount>({
                                                     info,
                                                 });
                                             },
-                                        });
+                                        }));
                                         break;
                                     }
                                     default:
@@ -405,7 +430,7 @@ export const wechatMPCPlugin = createChatChannelPlugin<ResolvedAccount>({
                     to: ctx.to,
                     textLen: (ctx.text ?? "").length,
                     textPreview: (ctx.text ?? "").slice(0, 120),
-                });
+                }, ctx);
 
                 const result = sendOutboundTextViaWs({
                     cfg: ctx.cfg,
