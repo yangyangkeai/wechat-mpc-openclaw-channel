@@ -345,17 +345,82 @@ function getAccountKey(account: ResolvedAccount): string {
     return `${account.accountId ?? "default"}:${account.appid}`;
 }
 
+function normalizeConfigString(value: unknown): string {
+    return typeof value === "string" ? value.trim() : "";
+}
+
+function resolveAccountsFromArrayConfig(cfg: OpenClawConfig): ResolvedAccount[] {
+    const section = (cfg.channels as Record<string, any>)?.[channelId];
+    if (!Array.isArray(section?.accounts)) {
+        return [];
+    }
+
+    const accounts: ResolvedAccount[] = [];
+    const usedAccountIds = new Set<string>();
+    for (const raw of section.accounts) {
+        if (!raw || typeof raw !== "object") {
+            continue;
+        }
+
+        const proxyUrl = normalizeConfigString((raw as Record<string, unknown>).proxyUrl);
+        const appid = normalizeConfigString((raw as Record<string, unknown>).appid);
+        const apiKey = normalizeConfigString((raw as Record<string, unknown>).apiKey);
+
+        // 空对象 / 空字符串账号视为“空数据组”，不参与多账号模式。
+        if (!proxyUrl && !appid && !apiKey) {
+            continue;
+        }
+
+        // 只接纳完整账号；不完整账号直接跳过，避免串台和半配置运行。
+        if (!proxyUrl || !appid || !apiKey) {
+            continue;
+        }
+
+        let accountId: string;
+        if (accounts.length === 0) {
+            accountId = "default";
+        } else {
+            const baseId = `account-${appid}`;
+            accountId = baseId;
+            let suffix = 2;
+            while (usedAccountIds.has(accountId)) {
+                accountId = `${baseId}-${suffix}`;
+                suffix += 1;
+            }
+        }
+        usedAccountIds.add(accountId);
+        accounts.push({
+            accountId,
+            proxyUrl,
+            appid,
+            apiKey,
+        });
+    }
+
+    return accounts;
+}
+
 // 从全局配置中解析账号信息，供启动时使用
 function resolveAccountFromConfig(cfg: OpenClawConfig, accountId?: string | null): ResolvedAccount {
+    const arrayAccounts = resolveAccountsFromArrayConfig(cfg);
+    if (arrayAccounts.length > 0) {
+        const targetAccountId = accountId ?? "default";
+        const matched = arrayAccounts.find((item) => item.accountId === targetAccountId);
+        if (!matched) {
+            throw new Error(`wechat-mpc: accountId '${targetAccountId}' not found in accounts[]`);
+        }
+        return matched;
+    }
+
     const section = (cfg.channels as Record<string, any>)?.[channelId];
-    const proxyUrl = section?.proxyUrl;
-    const appid = section?.appid;
-    const apiKey = section?.apiKey;
+    const proxyUrl = normalizeConfigString(section?.proxyUrl);
+    const appid = normalizeConfigString(section?.appid);
+    const apiKey = normalizeConfigString(section?.apiKey);
     if (!proxyUrl || !appid || !apiKey) {
         throw new Error("wechat-mpc: proxyUrl, appid and apiKey are required");
     }
     return {
-        accountId: accountId ?? null,
+        accountId: accountId ?? "default",
         proxyUrl,
         appid,
         apiKey,
@@ -647,8 +712,14 @@ export const wechatMPCPlugin = createChatChannelPlugin<ResolvedAccount>({
         },
         // 渠道配置读取与校验逻辑
         config: {
-            // 当前实现只暴露一个逻辑账号，配置字段来自 channels.wechat-mpc
-            listAccountIds: (_cfg: OpenClawConfig) => ["default"],
+            // 优先读取 accounts[]；若不存在、为空或空数据组，则回退单账号配置。
+            listAccountIds: (cfg: OpenClawConfig) => {
+                const accounts = resolveAccountsFromArrayConfig(cfg);
+                if (accounts.length > 0) {
+                    return accounts.map((item) => item.accountId ?? "default");
+                }
+                return ["default"];
+            },
             // 启动前配置完整性判断
             isConfigured: (account) => Boolean(account.proxyUrl && account.appid && account.apiKey),
             // 统一启用，是否真正可运行由 isConfigured 决定
@@ -658,7 +729,7 @@ export const wechatMPCPlugin = createChatChannelPlugin<ResolvedAccount>({
         },
         status: {
             buildAccountSnapshot: ({account, runtime}) => ({
-                accountId: "default",
+                accountId: account.accountId ?? "default",
                 configured: Boolean(account.proxyUrl && account.appid && account.apiKey),
                 enabled: true,
                 ...runtime

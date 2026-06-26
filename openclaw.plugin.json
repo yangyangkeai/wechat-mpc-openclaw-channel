@@ -26,6 +26,33 @@
           "apiKey": {
             "type": "string",
             "description": "API Key for authenticating with the third-party platform."
+          },
+          "accounts": {
+            "type": "array",
+            "description": "Multiple account configurations.",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "proxyUrl": {
+                  "type": "string",
+                  "description": "WebSocket URL for receiving messages from OpenClaw."
+                },
+                "appid": {
+                  "type": "string",
+                  "description": "AppID of your WeChat Official Account (微信公众号) or OpenKfId of your WeChat Customer Service (企业微信客服)."
+                },
+                "apiKey": {
+                  "type": "string",
+                  "description": "API Key for authenticating with the third-party platform."
+                }
+              },
+              "required": [
+                "proxyUrl",
+                "appid",
+                "apiKey"
+              ]
+            }
           }
         }
       },

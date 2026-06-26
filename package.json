@@ -55,7 +55,7 @@
   "license": "MIT",
   "devDependencies": {
     "esbuild": "^0.28.0",
-    "openclaw": "^2026.6.9",
+    "openclaw": "^2026.6.10",
     "typescript": "^6.0.2"
   }
 }

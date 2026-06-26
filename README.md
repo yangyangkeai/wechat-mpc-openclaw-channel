@@ -122,6 +122,9 @@ openclaw gateway restart
 | proxyUrl | ✅  | 三方平台代理服务地址（WSS）            |
 | appid    | ✅  | 微信公众号 AppID / 企微客服OpenKfId |
 | apiKey   | ✅  | 平台分配的访问密钥                  |
+| accounts | ❌  | 多账号配置数组，每个元素包含 `proxyUrl`、`appid`、`apiKey` |
+
+> 当 `accounts` 已配置且不为空时，将优先使用 `accounts` 中的账号配置，并忽略单独配置的 `proxyUrl`、`appid`、`apiKey`。
 
 ## ⚙️ 如何联系
 
