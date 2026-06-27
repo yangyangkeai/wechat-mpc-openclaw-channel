@@ -396,7 +396,7 @@ function resolveAccountsFromArrayConfig(cfg: OpenClawConfig): ResolvedAccount[] 
             apiKey,
         });
     }
-
+    //console.log("accounts", accounts)
     return accounts;
 }
 

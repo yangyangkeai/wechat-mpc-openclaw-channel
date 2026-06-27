@@ -126,6 +126,8 @@ openclaw gateway restart
 
 > 当 `accounts` 已配置且不为空时，将优先使用 `accounts` 中的账号配置，并忽略单独配置的 `proxyUrl`、`appid`、`apiKey`。
 
+> 当不配置 `accounts` 或只配置了一个账号时，`accountId` 默认为 `default`，多个账号时第一个账号的 `accountId` 默认为 `default`，其他账号 `'account-{appid}'`。
+
 ## ⚙️ 如何联系
 
 **📡 如有问题或需要技术支持，欢迎联系我们：**
